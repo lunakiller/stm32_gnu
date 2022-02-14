@@ -1,0 +1,89 @@
+*** Toolchain installation ***
+Arch Linux:
+	- install make and arm-none-eabi-gcc package
+	  (sudo pacman -S make arm-none-eabi-gcc)
+
+Ubuntu/Debian:
+	- go to https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads
+	  and download Linux x86_64 Tarball
+	- unpack the file for example to /usr/share
+	  (sudo tar xjf gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux.tar.bz2 -C /usr/share)
+	- make symlinks for system-wide access
+	  (sudo ln -s /usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-gcc /usr/bin/arm-none-eabi-gcc
+	   sudo ln -s /usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-g++ /usr/bin/arm-none-eabi-g++
+	   sudo ln -s /usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-gdb /usr/bin/arm-none-eabi-gdb
+	   sudo ln -s /usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-size /usr/bin/arm-none-eabi-size
+	   sudo ln -s /usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-objcopy /usr/bin/arm-none-eabi-objcopy)
+	- install dependencies and create symlinks
+	  (sudo apt install libncurses-dev
+	   sudo ln -s /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
+	   sudo ln -s /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5)
+	- chech if it works
+	  arm-none-eabi-gcc --version
+	- install make
+	  (sudo apt install make)
+
+*** Locations ***
+- C source files to Src/, header files to Inc/
+- ASM source files to root folder
+- file with address definitions of peripherals is in
+  Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f1xx...h
+
+*** Commands ***
+	make			- build program
+	make clean		- remove build directory
+Program will be compiled in build/ directory, where you can find
+all the files (*.hex, *.bin and *.elf for GDB).
+
+*** Makefile adjustments ***
+Change microcontroller:
+	- "C_DEFS" (line 90), change define for appropriate MCU
+	  there is a comment with 2 possible defines, others can be found
+	  in "stm32f1xx.h" file in CMSIS drivers
+Change executable name:
+	- change string in "TARGET" (line ~16)
+Change linker script:
+	- change "LDSCRIPT" value (line 124)
+For pure ASM:
+	- comment all sources in "C_SOURCES" (line ~38)
+	- add necessary assembly source files to "ASM_SOURCES" (line ~42)
+	- build
+For pure C:
+	- comment all sources in "ASM_SOURCES" except for startup_stm32... (line ~42)
+	- add necessary C source files to "C_SOURCES" (line ~38)
+	- build
+For C with ASM procedures:
+	- add necessary assembly source files to "ASM_SOURCES" (line ~42)
+	- add necessary C source files to "C_SOURCES" (line ~38)
+	- build
+
+*** Linker script adjustments ***
+Change stack size:
+	- edit value in variable "_estack" (line 56)
+Change memory locations:
+	- try to edit "MEMORY" and "SECTIONS"
+
+*** Examples ***
+- examples are tested on BluePill board with STM32F103C8T6, gcc version 10.2.0 (Arch Repository)
+- to compile it for STM32VLDISCOVERY with STM32F100RB, just edit Makefile to use linker script
+  for STM32F100RB
+	
+*** IMPORTANT ***
+- never comment startup file in Makefile ASM_sources
+- first label that MCU jumps to after startup is "main", so you need to have
+  main somewhere in code; or you can change this behaviour in startup file
+
+*** Additional info ***
+https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa
+https://developer.arm.com/documentation/100068/0615/Migrating-from-armasm-to-the-armclang-Integrated-Assembler
+https://www.mikrocontroller.net/articles/ARM-ASM-Tutorial
+
+*** Debug options ***
+- Black Magic Probe
+	https://github.com/blacksphere/blackmagic - this can be flashed onto cheap Chinese
+	st-link dongles, has a native GDB server, can also be used for flashing and it is imho
+	the best open source debugger you can get
+- ST-Link + OpenOCD
+	many tutorials over the web, should work, didn't use much myself
+- ST-Link + st-util from "stlink" package
+	unreliable, stepping sometimes works and sometimes doesn't
